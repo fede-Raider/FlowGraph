@@ -16,7 +16,6 @@ FFlowPin UFlowNode_SubGraph::FinishPin(TEXT("Finish"));
 const FName UFlowNode_SubGraph::AssetParams_MemberName = GET_MEMBER_NAME_CHECKED(ThisClass, AssetParams);
 
 UFlowNode_SubGraph::UFlowNode_SubGraph()
-	: bCanInstanceIdenticalAsset(false)
 {
 #if WITH_EDITOR
 	Category = TEXT("Graph");
@@ -43,8 +42,8 @@ EFlowPreloadResult UFlowNode_SubGraph::PreloadContent()
 
 	FLOW_ASSERT_ENUM_MAX(EFlowPreloadResult, 2);
 
-	// TODO (gtaylor) CreateSubFlow is currently synchronous-only, 
-	// we could conceivably ADD ASYNC UFlowAsset load 
+	// TODO (gtaylor) CreateSubFlow is currently synchronous-only,
+	// we could conceivably ADD ASYNC UFlowAsset load
 	// (which could do the call CreateSubFlow after the asset was loaded).
 	return EFlowPreloadResult::Completed;
 }
@@ -131,7 +130,7 @@ FFlowDataPinResult UFlowNode_SubGraph::TrySupplyDataPin(const FName PinName) con
 {
 	if (PinName == AssetParams_MemberName)
 	{
-		// Prevent infinite recursion by sourcing the AssetParams pin directly 
+		// Prevent infinite recursion by sourcing the AssetParams pin directly
 		// (otherwise, it would attempt to resolve it below and infinitely crash our stack.
 		// don't ask me how I know).
 		return Super::TrySupplyDataPin(PinName);
@@ -152,10 +151,11 @@ FFlowDataPinResult UFlowNode_SubGraph::TrySupplyDataPin(const FName PinName) con
 
 	if (!IsInputConnected(PinName))
 	{
-		if (IsInputConnected(AssetParams_MemberName) || !AssetParams.IsNull())
+		const bool bHasAssetParams = IsInputConnected(AssetParams_MemberName) || !AssetParams.IsNull();
+		if (bHasAssetParams)
 		{
 			// If not connected, we can source the value from the asset data params (if available)
-			TObjectPtr<UObject> Value = nullptr;
+			TObjectPtr<UObject> Value;
 			const EFlowDataPinResolveResult ResultEnum = Super::TryResolveDataPinValue<FFlowPinType_Object>(AssetParams_MemberName, Value);
 			if (FlowPinType::IsSuccess(ResultEnum) && IsValid(Value))
 			{
@@ -193,6 +193,12 @@ void UFlowNode_SubGraph::OnLoad_Implementation()
 }
 
 #if WITH_EDITOR
+
+void UFlowNode_SubGraph::SetAsset(UFlowAsset* InAsset)
+{
+	Asset = InAsset;
+	SubscribeToAssetChanges();
+}
 
 FText UFlowNode_SubGraph::K2_GetNodeTitle_Implementation() const
 {
@@ -365,9 +371,9 @@ void UFlowNode_SubGraph::SubscribeToAssetChanges()
 		TWeakObjectPtr<UFlowNode_SubGraph> SelfWeakPtr(this);
 		Asset->OnSubGraphReconstructionRequested.BindLambda([SelfWeakPtr]()
 		{
-			if (SelfWeakPtr.IsValid())
+			if (UFlowNode_SubGraph* Self = SelfWeakPtr.Get())
 			{
-				SelfWeakPtr->OnReconstructionRequested.ExecuteIfBound();
+				Self->OnReconstructionRequested.ExecuteIfBound();
 			}
 		});
 	}
@@ -375,3 +381,14 @@ void UFlowNode_SubGraph::SubscribeToAssetChanges()
 #endif
 
 #undef LOCTEXT_NAMESPACE
+
+#if WITH_EDITOR
+const FFlowAgentDoc& UFlowNode_SubGraph::GetAgentDoc() const
+{
+	static const FFlowAgentDoc Doc = MakeAgentDoc(
+		/*Guidance*/ TEXT("Every name listed in the child asset's CustomInputs and CustomOutputs arrays becomes a matching pin on this node - pair them with Custom Input/Output nodes inside the child to route signals in and out of the sub-graph mid-run. Enabling bCanInstanceIdenticalAsset can cause infinite recursion if the child unconditionally spawns itself; leave it off unless you have a real termination condition."),
+		/*Tags*/     { TEXT("graph"), TEXT("subgraph"), TEXT("composition") },
+		/*Articles*/ {  });
+	return Doc;
+}
+#endif

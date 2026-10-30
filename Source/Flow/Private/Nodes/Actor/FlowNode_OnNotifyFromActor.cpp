@@ -17,14 +17,17 @@ void UFlowNode_OnNotifyFromActor::ObserveActor(TWeakObjectPtr<AActor> Actor, TWe
 	if (!RegisteredActors.Contains(Actor))
 	{
 		RegisteredActors.Emplace(Actor, Component);
-		Component->OnNotifyFromComponent.AddUObject(this, &UFlowNode_OnNotifyFromActor::OnNotifyFromComponent);
-
-		if (bRetroactive)
+		if (UFlowComponent* FlowComponent = Component.Get())
 		{
-			const FGameplayTagContainer& RecentlySentNotifyTags = Component->GetRecentlySentNotifyTags();
-			if (bExactMatch ? RecentlySentNotifyTags.HasAnyExact(NotifyTags) : RecentlySentNotifyTags.HasAny(NotifyTags))
+			FlowComponent->OnNotifyFromComponent.AddUObject(this, &UFlowNode_OnNotifyFromActor::OnNotifyFromComponent);
+
+			if (bRetroactive)
 			{
-				OnEventReceived();
+				const FGameplayTagContainer& RecentlySentNotifyTags = FlowComponent->GetRecentlySentNotifyTags();
+				if (bExactMatch ? RecentlySentNotifyTags.HasAnyExact(NotifyTags) : RecentlySentNotifyTags.HasAny(NotifyTags))
+				{
+					OnEventReceived();
+				}
 			}
 		}
 	}
@@ -57,5 +60,16 @@ void UFlowNode_OnNotifyFromActor::OnNotifyFromComponent(UFlowComponent* Componen
 FString UFlowNode_OnNotifyFromActor::GetNodeDescription() const
 {
 	return GetIdentityTagsDescription(IdentityTags) + LINE_TERMINATOR + GetNotifyTagsDescription(NotifyTags);
+}
+#endif
+
+#if WITH_EDITOR
+const FFlowAgentDoc& UFlowNode_OnNotifyFromActor::GetAgentDoc() const
+{
+	static const FFlowAgentDoc Doc = MakeAgentDoc(
+		/*Guidance*/ TEXT("Enable bRetroactive to also fire if the matching notify was already sent before this node started observing - useful in multiplayer, where a client-side node may start listening after the server already sent the notify."),
+		/*Tags*/     { TEXT("actor"), TEXT("notify"), TEXT("event") },
+		/*Articles*/ {  });
+	return Doc;
 }
 #endif

@@ -1,12 +1,14 @@
-﻿// Copyright https://github.com/MothCocoon/FlowGraph/graphs/contributors
-
+// Copyright https://github.com/MothCocoon/FlowGraph/graphs/contributors
 #include "Asset/AssetDefinition_FlowAsset.h"
+
 #include "Asset/SFlowDiff.h"
 #include "FlowEditorModule.h"
 #include "Graph/FlowGraphSettings.h"
 #include "Graph/Nodes/FlowGraphNode.h"
 
 #include "FlowAsset.h"
+
+#include "EdGraph/EdGraph.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(AssetDefinition_FlowAsset)
 

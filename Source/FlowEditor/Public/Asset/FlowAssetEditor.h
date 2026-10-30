@@ -2,6 +2,7 @@
 #pragma once
 
 #include "EditorUndoClient.h"
+#include "Delegates/Delegate.h"
 #include "Misc/NotifyHook.h"
 #include "Toolkits/AssetEditorToolkit.h"
 #include "Toolkits/IToolkitHost.h"
@@ -19,7 +20,9 @@ class IDetailsView;
 class SDockableTab;
 class SGraphEditor;
 class UEdGraphNode;
+class UEdGraphPin;
 struct FSlateBrush;
+struct FPropertyAndParent;
 struct FPropertyChangedEvent;
 struct Rect;
 
@@ -65,8 +68,9 @@ private:
 	/* The current UI selection state of this editor. */
 	FName CurrentUISelection;
 
+	FDelegateHandle FlowGraphEditorSettingsChangedHandle;
+
 public:
-	FFlowAssetEditor();
 	virtual ~FFlowAssetEditor() override;
 
 	UFlowAsset* GetFlowAsset() const { return FlowAsset; }
@@ -105,10 +109,14 @@ public:
 	// FAssetEditorToolkit
 	virtual void InitToolMenuContext(FToolMenuContext& MenuContext) override;
 	virtual void PostRegenerateMenusAndToolbars() override;
+protected:
 	virtual void SaveAsset_Execute() override;
 	virtual void SaveAssetAs_Execute() override;
+	virtual void OnAssetsSaved(const TArray<UObject*>& SavedObjects) override;
+	virtual void OnAssetsSavedAs(const TArray<UObject*>& SavedObjects) override;
 	// --
 
+public:
 	bool IsTabFocused(const FTabId& TabId) const;
 
 private:
@@ -129,22 +137,32 @@ protected:
 	virtual void CreateToolbar();
 	virtual void BindToolbarCommands();
 	
-	virtual void RefreshAsset();
 	virtual void RefreshDetails();
+	void ShowAssetDefaults() const;
+
+	virtual void RefreshAsset();
+	
+	virtual void TryValidateOnAssetSave(const TArray<UObject*>& SavedObjects) const;
+	virtual void ValidateAsset(FFlowMessageLog& MessageLog);
 
 private:
 	void ValidateAsset_Internal();
 
 protected:
-	virtual void ValidateAsset(FFlowMessageLog& MessageLog);
+	virtual void AutoFormatGraph();
+	
 	virtual void SearchInAsset();
 
-	void EditAssetDefaults_Clicked() const;
+	static void ContinueFlowExecution();
+	static void StopFlowExecution();
+	static bool IsFlowExecutionHalted();
+	static class UFlowDebugEditorSubsystem* GetFlowDebugEditorSubsystem();
 
 	virtual void CreateWidgets();
 	virtual void CreateGraphWidget();
 
 	static bool CanEdit();
+	static bool IsPropertyVisible(const FPropertyAndParent& PropertyAndParent);
 
 public:
 	void SetUISelectionState(const FName SelectionOwner);
