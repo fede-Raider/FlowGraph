@@ -134,6 +134,10 @@ public:
 	virtual void Cleanup() override;
 	// --
 
+protected:
+	void ReleaseInjectedComponentUsers();
+
+public:
 	/* Dispatcher for ExecuteInput to ensure the AddOns get their ExecuteInput calls even if the node/addon. */
 	void ExecuteInputForSelfAndAddOns(const FName& PinName);
 
@@ -363,52 +367,6 @@ public:
 
 public:
 
-	// #FlowDataPinLegacy
-	UFUNCTION(BlueprintCallable, Category = DataPins, DisplayName = "Try Resolve DataPin As Bool", meta = (DeprecatedFunction, DeprecationMessage = "Use TryResolveDataPin (in blueprint) or TryResolveDataPinValue(s) (in code) instead"))
-	FFlowDataPinResult_Bool TryResolveDataPinAsBool(const FName& PinName) const;
-
-	UFUNCTION(BlueprintCallable, Category = DataPins, DisplayName = "Try Resolve DataPin As Int", meta = (DeprecatedFunction, DeprecationMessage = "Use TryResolveDataPin (in blueprint) or TryResolveDataPinValue(s) (in code) instead"))
-	FFlowDataPinResult_Int TryResolveDataPinAsInt(const FName& PinName) const;
-
-	UFUNCTION(BlueprintCallable, Category = DataPins, DisplayName = "Try Resolve DataPin As Float", meta = (DeprecatedFunction, DeprecationMessage = "Use TryResolveDataPin (in blueprint) or TryResolveDataPinValue(s) (in code) instead"))
-	FFlowDataPinResult_Float TryResolveDataPinAsFloat(const FName& PinName) const;
-
-	UFUNCTION(BlueprintCallable, Category = DataPins, DisplayName = "Try Resolve DataPin As Name", meta = (DeprecatedFunction, DeprecationMessage = "Use TryResolveDataPin (in blueprint) or TryResolveDataPinValue(s) (in code) instead"))
-	FFlowDataPinResult_Name TryResolveDataPinAsName(const FName& PinName) const;
-
-	UFUNCTION(BlueprintCallable, Category = DataPins, DisplayName = "Try Resolve DataPin As String", meta = (DeprecatedFunction, DeprecationMessage = "Use TryResolveDataPin (in blueprint) or TryResolveDataPinValue(s) (in code) instead"))
-	FFlowDataPinResult_String TryResolveDataPinAsString(const FName& PinName) const;
-
-	UFUNCTION(BlueprintCallable, Category = DataPins, DisplayName = "Try Resolve DataPin As Text", meta = (DeprecatedFunction, DeprecationMessage = "Use TryResolveDataPin (in blueprint) or TryResolveDataPinValue(s) (in code) instead"))
-	FFlowDataPinResult_Text TryResolveDataPinAsText(const FName& PinName) const;
-
-	UFUNCTION(BlueprintCallable, Category = DataPins, DisplayName = "Try Resolve DataPin As Enum", meta = (DeprecatedFunction, DeprecationMessage = "Use TryResolveDataPin (in blueprint) or TryResolveDataPinValue(s) (in code) instead"))
-	FFlowDataPinResult_Enum TryResolveDataPinAsEnum(const FName& PinName) const;
-
-	UFUNCTION(BlueprintCallable, Category = DataPins, DisplayName = "Try Resolve DataPin As Vector", meta = (DeprecatedFunction, DeprecationMessage = "Use TryResolveDataPin (in blueprint) or TryResolveDataPinValue(s) (in code) instead"))
-	FFlowDataPinResult_Vector TryResolveDataPinAsVector(const FName& PinName) const;
-
-	UFUNCTION(BlueprintCallable, Category = DataPins, DisplayName = "Try Resolve DataPin As Rotator", meta = (DeprecatedFunction, DeprecationMessage = "Use TryResolveDataPin (in blueprint) or TryResolveDataPinValue(s) (in code) instead"))
-	FFlowDataPinResult_Rotator TryResolveDataPinAsRotator(const FName& PinName) const;
-
-	UFUNCTION(BlueprintCallable, Category = DataPins, DisplayName = "Try Resolve DataPin As Transform", meta = (DeprecatedFunction, DeprecationMessage = "Use TryResolveDataPin (in blueprint) or TryResolveDataPinValue(s) (in code) instead"))
-	FFlowDataPinResult_Transform TryResolveDataPinAsTransform(const FName& PinName) const;
-
-	UFUNCTION(BlueprintCallable, Category = DataPins, DisplayName = "Try Resolve DataPin As GameplayTag", meta = (DeprecatedFunction, DeprecationMessage = "Use TryResolveDataPin (in blueprint) or TryResolveDataPinValue(s) (in code) instead"))
-	FFlowDataPinResult_GameplayTag TryResolveDataPinAsGameplayTag(const FName& PinName) const;
-
-	UFUNCTION(BlueprintCallable, Category = DataPins, DisplayName = "Try Resolve DataPin As GameplayTagContainer", meta = (DeprecatedFunction, DeprecationMessage = "Use TryResolveDataPin (in blueprint) or TryResolveDataPinValue(s) (in code) instead"))
-	FFlowDataPinResult_GameplayTagContainer TryResolveDataPinAsGameplayTagContainer(const FName& PinName) const;
-
-	UFUNCTION(BlueprintCallable, Category = DataPins, DisplayName = "Try Resolve DataPin As InstancedStruct", meta = (DeprecatedFunction, DeprecationMessage = "Use TryResolveDataPin (in blueprint) or TryResolveDataPinValue(s) (in code) instead"))
-	FFlowDataPinResult_InstancedStruct TryResolveDataPinAsInstancedStruct(const FName& PinName) const;
-
-	UFUNCTION(BlueprintCallable, Category = DataPins, DisplayName = "Try Resolve DataPin As Object", meta = (DeprecatedFunction, DeprecationMessage = "Use TryResolveDataPin (in blueprint) or TryResolveDataPinValue(s) (in code) instead"))
-	FFlowDataPinResult_Object TryResolveDataPinAsObject(const FName& PinName) const;
-
-	UFUNCTION(BlueprintCallable, Category = DataPins, DisplayName = "Try Resolve DataPin As Class", meta = (DeprecatedFunction, DeprecationMessage = "Use TryResolveDataPin (in blueprint) or TryResolveDataPinValue(s) (in code) instead"))
-	FFlowDataPinResult_Class TryResolveDataPinAsClass(const FName& PinName) const;
-	// --
 
 protected:
 	bool TryAddValueToFormatNamedArguments(const FFlowNamedDataPinProperty& NamedDataPinProperty, FFormatNamedArguments& InOutArguments) const;
@@ -441,8 +399,6 @@ protected:
 
 #if WITH_EDITOR
 public:
-	virtual void PostLoad() override;
-
 	void SetGraphNode(UEdGraphNode* NewGraphNode);
 	UEdGraphNode* GetGraphNode() const { return GraphNode; }
 
@@ -480,10 +436,6 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "FlowNode", meta = (Categories = "Flow.NodeStyle"))
 	FGameplayTag NodeDisplayStyle = FlowNodeStyle::Node;
-
-	/* Deprecated NodeStyle, replaced by NodeDisplayStyle. */
-	UPROPERTY(meta = (DeprecatedProperty, DeprecationMessage = "Use the NodeDisplayStyle instead."))
-	EFlowNodeStyle NodeStyle = EFlowNodeStyle::Invalid;
 
 	/* Set Node Style to custom to use your own color for this node (if using Flow.NodeStyle.Custom). */
 	UPROPERTY(EditDefaultsOnly, Category = "FlowNode", DisplayName = "Custom Node Color")
@@ -545,14 +497,17 @@ public:
 	/* Persists documentation for classes whose defaults serialize AgentDoc. Native overrides should
 	 * return their compiled-in documentation directly. */
 	void SetAgentDoc(const FFlowAgentDoc& InAgentDoc) { AgentDoc = InAgentDoc; }
-	
+
 	/** Returns the agent-facing guidance authored on this class or supplied by a native override. */
 	virtual const FFlowAgentDoc& GetAgentDoc() const { return AgentDoc; }
 
+	/**
+	 * The pin surface a catalog or documentation consumer should report for this class, read from the
+	 * CDO. Defaults to nothing; UFlowNode reports its declared InputPins/OutputPins, and a base that
+	 * generates its pins procedurally overrides this to report what it will generate. Pins
+	 * contributed by attached addons are outside the scope of a CDO and are not reported here.
+	 */
 	virtual void GetCatalogPins(TArray<FFlowPin>& OutInputPins, TArray<FFlowPin>& OutOutputPins) const {}
-
-protected:
-	void EnsureNodeDisplayStyle();
 #endif // WITH_EDITOR
 
 public:

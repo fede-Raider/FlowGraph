@@ -168,8 +168,11 @@ void UFlowSubsystem::FinishAndDeinitializeInstance(UFlowAsset* InstanceToFinish,
 
 UFlowAsset* UFlowSubsystem::CreateSubFlow(UFlowNode_SubGraph* SubGraphNode, const FString& SavedInstanceName, const bool bPreloading /* = false */)
 {
-	// all calls checks if SubGraphNode is valid
-	ensureAlways(SubGraphNode);
+	// Callers validate SubGraphNode, so this only catches a broken caller
+	if (!ensureAlways(IsValid(SubGraphNode)))
+	{
+		return nullptr;
+	}
 
 	UFlowAsset* SubGraphOwner = SubGraphNode->GetFlowAsset();
 	UFlowAsset* AssetInstance = nullptr;
@@ -496,12 +499,12 @@ const FFlowComponentSaveData* UFlowSubsystem::GetLoadedComponentRecord(const UFl
 {
 	if (LoadedSaveGame)
 	{
-		const FString WorldName = Component->GetWorld()->GetName();
-		const FString ActorName = Component->GetOwner()->GetName();
+		const FName WorldName = Component->GetWorld()->GetFName();
+		const FName ActorName = Component->GetOwner()->GetFName();
 
 		for (const FFlowComponentSaveData& ComponentRecord : LoadedSaveGame->FlowComponents)
 		{
-			if (ComponentRecord.WorldName == WorldName && ComponentRecord.ActorInstanceName == ActorName)
+			if (WorldName == FStringView(ComponentRecord.WorldName) && ActorName == FStringView(ComponentRecord.ActorInstanceName))
 			{
 				return &ComponentRecord;
 			}

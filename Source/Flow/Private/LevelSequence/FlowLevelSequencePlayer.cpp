@@ -13,11 +13,12 @@ UFlowLevelSequencePlayer* UFlowLevelSequencePlayer::CreateFlowLevelSequencePlaye
 	const UObject* WorldContextObject,
 	ULevelSequence* LevelSequence,
 	const FMovieSceneSequencePlaybackSettings& Settings,
-	const FLevelSequenceCameraSettings CameraSettings,
+	const FLevelSequenceCameraSettings InCameraSettings,
 	const AActor* TransformOriginActor,
 	const bool bReplicates,
 	const bool bAlwaysRelevant,
-	TObjectPtr<AFlowLevelSequenceActor>& OutActor
+	TObjectPtr<AFlowLevelSequenceActor>& OutActor,
+	TSubclassOf<AFlowLevelSequenceActor> ActorClass
 )
 {
 	if (LevelSequence == nullptr)
@@ -25,8 +26,13 @@ UFlowLevelSequencePlayer* UFlowLevelSequencePlayer::CreateFlowLevelSequencePlaye
 		return nullptr;
 	}
 
-	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
-	if (World == nullptr || World->bIsTearingDown)
+	if (ActorClass == nullptr)
+	{
+		ActorClass = AFlowLevelSequenceActor::StaticClass();
+	}
+
+	UWorld* ContextWorld = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
+	if (ContextWorld == nullptr || ContextWorld->bIsTearingDown)
 	{
 		return nullptr;
 	}
@@ -47,9 +53,14 @@ UFlowLevelSequencePlayer* UFlowLevelSequencePlayer::CreateFlowLevelSequencePlaye
 	// Create Sequence Actor
 	// We use deferred spawn, so we can set all actor properties prior to its initialization.
 	// This also helpful in case of multiplayer, since all actor settings are replicated with the spawned actor. No need to call replication just after spawn.
-	AFlowLevelSequenceActor* Actor = World->SpawnActorDeferred<AFlowLevelSequenceActor>(AFlowLevelSequenceActor::StaticClass(), SpawnTransform, nullptr, nullptr, ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+	AFlowLevelSequenceActor* Actor = ContextWorld->SpawnActorDeferred<AFlowLevelSequenceActor>(ActorClass, SpawnTransform, nullptr, nullptr, ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+	if (!::IsValid(Actor))
+	{
+		return nullptr;
+	}
+
 	Actor->SetPlaybackSettings(Settings);
-	Actor->CameraSettings = CameraSettings;
+	Actor->CameraSettings = InCameraSettings;
 
 	// InstanceData is not set to replicate to the clients, 
 	// so the clients will still play the level sequence using the world origin as the sequence origin.

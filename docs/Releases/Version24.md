@@ -16,12 +16,20 @@ Version 2.2 came with a huge Data Pins refactor, and it requires data migration 
 * Resave all Flow Graph assets.
 * Then update to the newer Flow Graph version.
 
+The original Data Pins implementation and its automatic migration are now removed.
+* Replace `FFlowDataPinInputProperty_*` and `FFlowDataPinOutputProperty_*` with `FFlowDataPinValue_*`.
+* Replace `TryResolveDataPinAs*` and typed `FFlowDataPinResult_*` with `TryResolveDataPinValue` / `TryResolveDataPinValues` and `FFlowDataPinResult`.
+* Use registered `FFlowPinTypeName` types instead of `EFlowPinType` and the removed `FFlowPin::PinType` field.
+* Assets must already use the revised value types; loading this release no longer upgrades original data pins.
+
 ### Changes potentially breaking C++ compilation
 * The `ActivationState` property of Flow Asset is now private. Access it through the `GetActivationState()` getter.
 * Changed the Flow Graph Node constructor to GENERATED_BODY.
     * This is a breaking change if you have custom UFlowGraphNode classes. Updating the code is trivial though.
 * Detail Customizations are now organized into subfolders.
     * This is a breaking change if you made changes to these classes.
+* Removed the deprecated `EFlowNodeStyle` enum, the `UFlowNodeBase::NodeStyle` property and `UFlowGraphSettings::NodeTitleColors`, replaced by `NodeDisplayStyle` tags in Flow 2.0. Nodes no longer run the conversion on every load.
+    * Assets not resaved since Flow 2.0 lose their node style. Resave them before upgrading.
 
 ### By default, Data Validation runs on saving a Flow Asset
 This is the result of hooking up Flow Asset validation to the engine's built-in validation. Thanks to this, many issues can be detected early on.

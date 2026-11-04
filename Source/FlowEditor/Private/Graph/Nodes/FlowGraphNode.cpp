@@ -45,7 +45,7 @@ void CleanInvalidPins(TArray<FFlowPin>& Array)
 	{
 		if (!Array[i].IsValid())
 		{
-			Array.RemoveAtSwap(i, EAllowShrinking::No);
+			Array.RemoveAt(i, EAllowShrinking::No);
 		}
 	}
 }
@@ -68,16 +68,11 @@ bool CheckPinsMatch(const TArray<FFlowPin>& LeftPins, const TArray<FFlowPin>& Ri
 		return false;
 	}
 
-	for (const FFlowPin& Left : LeftPins)
+	// Make sure the pins are in the same order and they match
+	for (int32 Index = 0; Index < LeftPins.Num(); ++Index)
 	{
 		// Do a deep pin match (not a simple name-only match)
-		auto PinsAreEqualPredicate = [&Left](const FFlowPin& Right)
-		{
-			return Left.DeepIsEqual(Right);
-		};
-
-		// For each required pin, make sure the existing pins array contains a pin that matches by name and type
-		if (!RightPins.ContainsByPredicate(PinsAreEqualPredicate))
+		if (!LeftPins[Index].DeepIsEqual(RightPins[Index]))
 		{
 			// Something didn't match!
 			return false;
@@ -1032,7 +1027,8 @@ void UFlowGraphNode::JumpToDefinition() const
 {
 	if (NodeInstance)
 	{
-		if (NodeInstance->GetClass()->IsNative())
+		// Script classes (e.g. Angelscript) aren't native and have no Blueprint, but navigate to source like native classes
+		if (NodeInstance->GetClass()->ClassGeneratedBy == nullptr)
 		{
 			if (FSourceCodeNavigation::CanNavigateToClass(NodeInstance->GetClass()))
 			{
@@ -1265,10 +1261,9 @@ bool UFlowGraphNode::TryUpdateNodePins(TMap<FName, FName>& OutAutoDataPinNameRem
 	const UFlowNode* FlowNodeCDO = FlowNodeInstance->GetClass()->GetDefaultObject<UFlowNode>();
 	check(IsValid(FlowNodeCDO));
 
-	// Fix up old pins on the CDO
+	// Prepare AddOn ownership on the CDO
 	UFlowNode* MutableCDO = const_cast<UFlowNode*>(FlowNodeCDO);
 	MutableCDO->EnsureAddOnFlowNodePointersForEditor();
-	MutableCDO->FixupDataPinTypes();
 
 	const bool bIsRerouteGraphNode = (Cast<UFlowGraphNode_Reroute>(this) != nullptr);
 
